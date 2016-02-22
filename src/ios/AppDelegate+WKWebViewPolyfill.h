@@ -9,6 +9,10 @@
 
 @interface AppDelegate (WKWebViewPolyfill)
 
+
 - (void) createWindowAndStartWebServer:(BOOL) startWebServer;
+
+- (NSString *const) getSessionHeader;
+- (NSString *const) getSessionKey;
 
 @end

@@ -1,5 +1,5 @@
 #import <objc/runtime.h>
-#import "AppDelegate.h"
+#import "AppDelegate+WKWebViewPolyfill.h"
 #import "MyMainViewController.h"
 #import <GCDWebServer/GCDWebServer.h>
 #import <GCDWebServer/GCDWebServerPrivate.h>
@@ -8,6 +8,7 @@
 // need to swap out a method, so swizzling it here
 static void swizzleMethod(Class class, SEL destinationSelector, SEL sourceSelector);
 
+
 @implementation AppDelegate (WKWebViewPolyfill)
 
 NSString *const FileSchemaConstant = @"file://";
@@ -15,6 +16,9 @@ NSString *const ServerCreatedNotificationName = @"WKWebView.WebServer.Created";
 GCDWebServer* _webServer;
 NSMutableDictionary* _webServerOptions;
 NSString* appDataFolder;
+NSString *const SessionHeader = @"X-Session";
+NSString *const SessionCookie = @"peerioxsession";
+NSString* sessionKey = nil;
 
 + (void)load {
     // Swap in our own viewcontroller which loads the wkwebview, but only in case we're running iOS 8+
@@ -30,7 +34,30 @@ NSString* appDataFolder;
     return YES;
 }
 
+- (NSString *const) getSessionHeader {
+    return SessionHeader;
+}
+
+- (NSString *const) getSessionKey {
+    return sessionKey;
+}
+
+- (NSString *)uuidString {
+    // Returns a UUID
+
+    CFUUIDRef uuid = CFUUIDCreate(kCFAllocatorDefault);
+    NSString *uuidString = (__bridge_transfer NSString *)CFUUIDCreateString(kCFAllocatorDefault, uuid);
+    CFRelease(uuid);
+
+    return uuidString;
+}
+
 - (void) createWindowAndStartWebServer:(BOOL) startWebServer {
+    /* generating a random session key */
+    if(sessionKey == nil) {
+      sessionKey = [self uuidString];
+    }
+    
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
 
     self.window = [[UIWindow alloc] initWithFrame:screenBounds];
@@ -77,6 +104,27 @@ NSString* appDataFolder;
     [myMainViewController setServerPort:_webServer.port];
 }
 
+- (GCDWebServerResponse*)accessForbidden {
+  return [GCDWebServerDataResponse responseWithHTML:@"Access Forbidden"];
+}
+
+- (BOOL)checkSessionKey:(GCDWebServerRequest*) request {
+  if([request.headers objectForKey:SessionHeader]) {
+    NSString* userSessionKey = request.headers[SessionHeader];
+    return [sessionKey isEqualToString:userSessionKey];
+  }
+  if([request.headers objectForKey:@"Cookie"]) {
+    NSString* userCookie = request.headers[@"Cookie"];
+    return [userCookie containsString:sessionKey];
+  }
+  return false;
+}
+
+- (NSString*)formatForeverCookieHeader:(NSString*) name
+                  value:(NSString*) value {
+  return [NSString stringWithFormat:@"%@=%@; expires=Fri, 31 Dec 9999 23:59:59 GMT", name, value];
+}
+
 - (void)addHandlerForBasePath:(NSString *) path
                 directoryPath:(NSString *) directoryPath
                 indexFilename:(NSString *) indexFilename {
@@ -84,10 +132,18 @@ NSString* appDataFolder;
                      pathRegex: [NSString stringWithFormat:@"^%@.*", path]
                      requestClass:[GCDWebServerRequest class]
                      processBlock:^GCDWebServerResponse *(GCDWebServerRequest* request) {
+                       /* testing for our session key */
+                       if(![self checkSessionKey:request]) return [self accessForbidden];
                        NSString *fileLocation = request.URL.path;
                        if ([request.URL.path isEqualToString: @"/"]) {
-                         return [GCDWebServerResponse responseWithRedirect:[NSURL URLWithString:indexFilename relativeToURL:request.URL]
-                                          permanent:NO];
+                         GCDWebServerResponse* redirectResponse = [GCDWebServerResponse
+                                responseWithRedirect:[NSURL
+                                                      URLWithString:indexFilename
+                                                      relativeToURL:request.URL]
+                                permanent:NO];
+                         [redirectResponse setValue:[self formatForeverCookieHeader:SessionCookie value:sessionKey]
+                         forAdditionalHeader: @"Set-Cookie"];
+                         return redirectResponse;
                        }
                        
                        if ([fileLocation hasPrefix:path]) {
@@ -101,6 +157,8 @@ NSString* appDataFolder;
                          
                        GCDWebServerResponse* response = [GCDWebServerFileResponse responseWithFile:fileLocation byteRange:request.byteRange];
                        [response setValue:@"bytes" forAdditionalHeader:@"Accept-Ranges"];
+                       [response setValue:[self formatForeverCookieHeader:SessionCookie value:sessionKey]
+                         forAdditionalHeader: @"Set-Cookie"];
                        return response;
                      }
    ];

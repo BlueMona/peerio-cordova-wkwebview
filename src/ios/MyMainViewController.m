@@ -231,7 +231,9 @@
     [CDVUserAgentUtil acquireLock:^(NSInteger lockToken) {
       _userAgentLockToken = lockToken;
       [CDVUserAgentUtil setUserAgent:self.userAgent lockToken:lockToken];
-      NSURLRequest* appReq = [NSURLRequest requestWithURL:URL cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:20.0];
+      AppDelegate* appDelegate = (AppDelegate*)[[UIApplication sharedApplication] delegate];
+      NSMutableURLRequest* appReq = [NSMutableURLRequest requestWithURL:URL cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:20.0];
+      [appReq addValue:appDelegate.getSessionKey forHTTPHeaderField:appDelegate.getSessionHeader];
       [self.wkWebView loadRequest:appReq];
     }];
 }
