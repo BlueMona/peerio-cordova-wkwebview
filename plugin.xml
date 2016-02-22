@@ -1,23 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
-        id="com.telerik.plugins.wkwebview"
-        version="0.6.9">
-
-  <name>WKWebView Polyfill</name>
-
+    id="com.peerio.cordova.plugin.wkwebview"
+    version="0.6.9">
+  <name>Peerio WKWebView Polyfill</name>
   <description>
-    A drop-in replacement of UIWebView for boosted performance and enhanced HTML5 support
+      A fork of Telerik WKWebView to protect server from being accessed outside of the app
   </description>
-
-  <author>Eddy Verbruggen / Telerik</author>
-
+  <author>Samvel Avanesov / Peerio, Eddy Verbruggen / Telerik</author>
   <license>MIT</license>
-
   <keywords>Webkit, Webkit webview, WKWebView Polyfill, WKWebView, WebView+</keywords>
-
-  <repo>https://github.com/Telerik-Verified-Plugins/WKWebView.git</repo>
-
-  <issue>https://github.com/Telerik-Verified-Plugins/WKWebView/issues</issue>
+  <repo>https://github.com/PeerioTechnologies/peerio-cordova-wkwebview</repo>
 
   <preference name="WKWEBVIEW_SERVER_PORT" default="12344" />
 

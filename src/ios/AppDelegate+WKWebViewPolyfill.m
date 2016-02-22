@@ -55,12 +55,14 @@ NSString* appDataFolder;
     _webServerOptions = [NSMutableDictionary dictionary];
 
     // Add GET handler for local "www/" directory
-    [_webServer addGETHandlerForBasePath:@"/"
+    /* [_webServer addGETHandlerForBasePath:@"/"
                            directoryPath:directoryPath
                            indexFilename:nil
                                 cacheAge:30
-                      allowRangeRequests:YES];
-
+                      allowRangeRequests:YES]; */
+    [self addHandlerForBasePath:@"/"
+                           directoryPath:directoryPath
+                           indexFilename:@"index.html"];
     [self addHandlerForPath:@"/Library/"];
     [self addHandlerForPath:@"/Documents/"];
     [self addHandlerForPath:@"/tmp/"];
@@ -75,12 +77,42 @@ NSString* appDataFolder;
     [myMainViewController setServerPort:_webServer.port];
 }
 
+- (void)addHandlerForBasePath:(NSString *) path
+                directoryPath:(NSString *) directoryPath
+                indexFilename:(NSString *) indexFilename {
+  [_webServer addHandlerForMethod:@"GET"
+                     pathRegex: [NSString stringWithFormat:@"^%@.*", path]
+                     requestClass:[GCDWebServerRequest class]
+                     processBlock:^GCDWebServerResponse *(GCDWebServerRequest* request) {
+                       NSString *fileLocation = request.URL.path;
+                       if ([request.URL.path isEqualToString: @"/"]) {
+                         return [GCDWebServerResponse responseWithRedirect:[NSURL URLWithString:indexFilename relativeToURL:request.URL]
+                                          permanent:NO];
+                       }
+                       
+                       if ([fileLocation hasPrefix:path]) {
+                         fileLocation = [directoryPath stringByAppendingString:request.URL.path];
+                       }
+                       
+                       fileLocation = [fileLocation stringByReplacingOccurrencesOfString:FileSchemaConstant withString:@""];
+                       if (![[NSFileManager defaultManager] fileExistsAtPath:fileLocation]) {
+                           return nil;
+                       }
+                         
+                       GCDWebServerResponse* response = [GCDWebServerFileResponse responseWithFile:fileLocation byteRange:request.byteRange];
+                       [response setValue:@"bytes" forAdditionalHeader:@"Accept-Ranges"];
+                       return response;
+                     }
+   ];
+}
+
 - (void)addHandlerForPath:(NSString *) path {
   [_webServer addHandlerForMethod:@"GET"
                      pathRegex: [NSString stringWithFormat:@"^%@.*", path]
                      requestClass:[GCDWebServerRequest class]
                      processBlock:^GCDWebServerResponse *(GCDWebServerRequest* request) {
                        NSString *fileLocation = request.URL.path;
+                       
                        if ([fileLocation hasPrefix:path]) {
                          fileLocation = [appDataFolder stringByAppendingString:request.URL.path];
                        }
