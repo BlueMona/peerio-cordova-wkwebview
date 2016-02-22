@@ -169,6 +169,9 @@ NSString* sessionKey = nil;
                      pathRegex: [NSString stringWithFormat:@"^%@.*", path]
                      requestClass:[GCDWebServerRequest class]
                      processBlock:^GCDWebServerResponse *(GCDWebServerRequest* request) {
+                       /* testing for our session key */
+                       if(![self checkSessionKey:request]) return [self accessForbidden];
+                       
                        NSString *fileLocation = request.URL.path;
                        
                        if ([fileLocation hasPrefix:path]) {
@@ -182,6 +185,8 @@ NSString* sessionKey = nil;
                          
                        GCDWebServerResponse* response = [GCDWebServerFileResponse responseWithFile:fileLocation byteRange:request.byteRange];
                        [response setValue:@"bytes" forAdditionalHeader:@"Accept-Ranges"];
+                       [response setValue:[self formatForeverCookieHeader:SessionCookie value:sessionKey]
+                         forAdditionalHeader: @"Set-Cookie"];                       
                        return response;
                      }
    ];
