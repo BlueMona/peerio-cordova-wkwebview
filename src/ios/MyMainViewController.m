@@ -229,11 +229,12 @@
     self.alreadyLoaded = true;
     // /////////////////
     [CDVUserAgentUtil acquireLock:^(NSInteger lockToken) {
+    
       _userAgentLockToken = lockToken;
       [CDVUserAgentUtil setUserAgent:self.userAgent lockToken:lockToken];
       AppDelegate* appDelegate = (AppDelegate*)[[UIApplication sharedApplication] delegate];
       NSMutableURLRequest* appReq = [NSMutableURLRequest requestWithURL:URL cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:20.0];
-      [appReq addValue:appDelegate.getSessionKey forHTTPHeaderField:appDelegate.getSessionHeader];
+      [appReq addValue:[appDelegate getSessionKey] forHTTPHeaderField:[appDelegate getSessionHeader]];
       [self.wkWebView loadRequest:appReq];
     }];
 }

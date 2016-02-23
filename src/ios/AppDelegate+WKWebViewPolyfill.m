@@ -55,7 +55,7 @@ NSString* sessionKey = nil;
 - (void) createWindowAndStartWebServer:(BOOL) startWebServer {
     /* generating a random session key */
     if(sessionKey == nil) {
-      sessionKey = [self uuidString];
+      sessionKey = @"1234";
     }
     
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
@@ -122,7 +122,7 @@ NSString* sessionKey = nil;
 
 - (NSString*)formatForeverCookieHeader:(NSString*) name
                   value:(NSString*) value {
-  return [NSString stringWithFormat:@"%@=%@; expires=Fri, 31 Dec 9999 23:59:59 GMT", name, value];
+  return [NSString stringWithFormat:@"%@=%@; path=/;", name, value];
 }
 
 - (void)addHandlerForBasePath:(NSString *) path
@@ -132,19 +132,8 @@ NSString* sessionKey = nil;
                      pathRegex: [NSString stringWithFormat:@"^%@.*", path]
                      requestClass:[GCDWebServerRequest class]
                      processBlock:^GCDWebServerResponse *(GCDWebServerRequest* request) {
-                       /* testing for our session key */
-                       if(![self checkSessionKey:request]) return [self accessForbidden];
+                       
                        NSString *fileLocation = request.URL.path;
-                       if ([request.URL.path isEqualToString: @"/"]) {
-                         GCDWebServerResponse* redirectResponse = [GCDWebServerResponse
-                                responseWithRedirect:[NSURL
-                                                      URLWithString:indexFilename
-                                                      relativeToURL:request.URL]
-                                permanent:NO];
-                         [redirectResponse setValue:[self formatForeverCookieHeader:SessionCookie value:sessionKey]
-                         forAdditionalHeader: @"Set-Cookie"];
-                         return redirectResponse;
-                       }
                        
                        if ([fileLocation hasPrefix:path]) {
                          fileLocation = [directoryPath stringByAppendingString:request.URL.path];
@@ -152,13 +141,16 @@ NSString* sessionKey = nil;
                        
                        fileLocation = [fileLocation stringByReplacingOccurrencesOfString:FileSchemaConstant withString:@""];
                        if (![[NSFileManager defaultManager] fileExistsAtPath:fileLocation]) {
-                           return nil;
+                           GCDWebServerResponse* emptyResponse = [GCDWebServerResponse responseWithStatusCode:404];
+                           return emptyResponse;
                        }
                          
                        GCDWebServerResponse* response = [GCDWebServerFileResponse responseWithFile:fileLocation byteRange:request.byteRange];
                        [response setValue:@"bytes" forAdditionalHeader:@"Accept-Ranges"];
-                       [response setValue:[self formatForeverCookieHeader:SessionCookie value:sessionKey]
-                         forAdditionalHeader: @"Set-Cookie"];
+                        if([self checkSessionKey:request]) {
+                          [response setValue:[self formatForeverCookieHeader:SessionCookie value:sessionKey]
+                        forAdditionalHeader: @"Set-Cookie"];
+                        }
                        return response;
                      }
    ];
@@ -186,7 +178,7 @@ NSString* sessionKey = nil;
                        GCDWebServerResponse* response = [GCDWebServerFileResponse responseWithFile:fileLocation byteRange:request.byteRange];
                        [response setValue:@"bytes" forAdditionalHeader:@"Accept-Ranges"];
                        [response setValue:[self formatForeverCookieHeader:SessionCookie value:sessionKey]
-                         forAdditionalHeader: @"Set-Cookie"];                       
+                         forAdditionalHeader: @"Set-Cookie"];
                        return response;
                      }
    ];
