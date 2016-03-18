@@ -55,7 +55,7 @@ NSString* sessionKey = nil;
 - (void) createWindowAndStartWebServer:(BOOL) startWebServer {
     /* generating a random session key */
     if(sessionKey == nil) {
-      sessionKey = @"1234";
+      sessionKey = [self uuidString];
     }
     
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
