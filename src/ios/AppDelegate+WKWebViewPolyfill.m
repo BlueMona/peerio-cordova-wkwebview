@@ -29,8 +29,17 @@ NSString* sessionKey = nil;
     }
 }
 
+-(void)onTick:(NSTimer *)timer {
+   [self createWindowAndStartWebServer:true];
+}
+
 - (BOOL)my_application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
     [self createWindowAndStartWebServer:true];
+  
+    /* NSTimer *t = [NSTimer scheduledTimerWithTimeInterval: 5.0
+                      target: self
+                      selector:@selector(onTick:)
+                      userInfo: nil repeats:YES]; */
     return YES;
 }
 

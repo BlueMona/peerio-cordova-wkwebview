@@ -149,9 +149,16 @@
     if ((title == nil) || [title isEqualToString:@""]) {
         if (_crashRecoveryActive) {
             NSLog(@"WkWebView crash detected, recovering... ");
+            UIApplicationState state = [[UIApplication sharedApplication] applicationState];
+            if (state == UIApplicationStateBackground || state == UIApplicationStateInactive)
+            {
+                NSLog(@"Application is in the background, all is normal");
+                return;
+            }
+            NSLog(@"Trying to restart the view");
             _crashRecoveryActive = false;
-            [_crashRecoveryTimer invalidate];
-            _crashRecoveryTimer = nil;
+            //[_crashRecoveryTimer invalidate];
+            //_crashRecoveryTimer = nil;
             AppDelegate* appDelegate = (AppDelegate*)[[UIApplication sharedApplication] delegate];
             [appDelegate createWindowAndStartWebServer:true];
         }
@@ -228,15 +235,15 @@
 {
     self.alreadyLoaded = true;
     // /////////////////
-    [CDVUserAgentUtil acquireLock:^(NSInteger lockToken) {
+  //  [CDVUserAgentUtil acquireLock:^(NSInteger lockToken) {
     
-      _userAgentLockToken = lockToken;
-      [CDVUserAgentUtil setUserAgent:self.userAgent lockToken:lockToken];
+ //     _userAgentLockToken = lockToken;
+//      [CDVUserAgentUtil setUserAgent:self.userAgent lockToken:lockToken];
       AppDelegate* appDelegate = (AppDelegate*)[[UIApplication sharedApplication] delegate];
       NSMutableURLRequest* appReq = [NSMutableURLRequest requestWithURL:URL cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:20.0];
       [appReq addValue:[appDelegate getSessionKey] forHTTPHeaderField:[appDelegate getSessionHeader]];
       [self.wkWebView loadRequest:appReq];
-    }];
+  //  }];
 }
 
 - (NSURL*)fixURL:(NSString*)URL
@@ -527,7 +534,8 @@
 
   // Start timer which periodically checks whether the app is alive
   if (![self settingForKey:@"DisableCrashRecovery"] || ![[self settingForKey:@"DisableCrashRecovery"] boolValue]) {
-    _crashRecoveryTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(recoverFromCrash) userInfo:nil repeats:YES];
+    _crashRecoveryActive = true;
+    _crashRecoveryTimer = [NSTimer scheduledTimerWithTimeInterval:5 target:self selector:@selector(recoverFromCrash) userInfo:nil repeats:YES];
   }
 }
 
